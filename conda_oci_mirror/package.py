@@ -118,6 +118,7 @@ class Package:
         timestamp=None,
         client=None,
         new_tag=False,
+        channel_base_url=None,
     ):
         """
         Info is only required if the file does not exist yet.
@@ -125,6 +126,9 @@ class Package:
         writers of the same registry tag must be excluded by the caller.
         """
         self.channel = channel
+        self.channel_base_url = (
+            channel_base_url or f"https://conda.anaconda.org/{channel}"
+        )
         self.subdir = subdir
         self.package = package
         self.package_info = info
@@ -143,7 +147,7 @@ class Package:
         # This will retry 5 times and ensure the checksums match
         if not self.file or not os.path.exists(self.file):
             urls = (
-                f"https://conda.anaconda.org/{self.channel}/{self.subdir}/{self.package}",
+                f"{self.channel_base_url}/{self.subdir}/{self.package}",
                 f"https://conda-web.anaconda.org/{self.channel}/{self.subdir}/{self.package}",
             )
             dest = os.path.join(self.cache_dir, self.package)

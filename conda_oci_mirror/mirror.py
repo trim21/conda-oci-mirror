@@ -42,7 +42,7 @@ class Mirror:
         shard_workers=2,
         repush_shards=False,
     ):
-        self.channel = channel
+        self.channel, self.channel_base_url = util.channel_url_and_name(channel)
         self.subdirs = subdirs or defaults.DEFAULT_SUBDIRS
         self.packages = [packages] if isinstance(packages, str) else (packages or [])
         if "all" in self.packages:
@@ -61,7 +61,7 @@ class Mirror:
 
         # Set listing of (undistributable) packages to skip
         self.skip_packages = (
-            get_forbidden_packages() if channel == "conda-forge" else None
+            get_forbidden_packages() if self.channel == "conda-forge" else None
         )
 
         # Set the number of workers
@@ -79,6 +79,7 @@ class Mirror:
         """
         util.print_item("Using cache dir:", self.cache_dir)
         util.print_item(" Channel  :", self.channel)
+        util.print_item("  Base URL:", self.channel_base_url)
         util.print_item("  Subdirs :", self.subdirs)
         util.print_item("  Packages:", "all" if not self.packages else self.packages)
 
@@ -110,6 +111,7 @@ class Mirror:
                 mirror_shards=not self.packages,
                 shard_workers=self.shard_workers,
                 repush_shards=self.repush_shards,
+                channel_base_url=self.channel_base_url,
             )
 
             # Run filter based on packages we are looking for, and forbidden
@@ -129,6 +131,7 @@ class Mirror:
                     info=info,
                     client=self.client,
                     new_tag=package in repo.new_archives,
+                    channel_base_url=self.channel_base_url,
                 )
                 runner.add_task(
                     tasks.PackageUploadTask(
@@ -268,6 +271,7 @@ class Mirror:
                     existing_file=str(package_name),
                     timestamp=timestamp,
                     client=self.client,
+                    channel_base_url=self.channel_base_url,
                 )
                 if not pkg.matches_package(task.package_name_bare, self.packages):
                     continue

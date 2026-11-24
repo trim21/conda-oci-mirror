@@ -6,6 +6,25 @@ import platform
 import subprocess
 import sys
 import tarfile
+from urllib.parse import urlsplit
+
+
+def channel_url_and_name(channel):
+    """
+    Resolve a channel that may be a full URL into (base_url, name).
+
+    A plain channel name is served from anaconda.org. A channel given as
+    a URL (e.g. https://repo.prefix.dev/trim21-pkgs) is used as the base
+    URL for repodata and package downloads, and its last path segment
+    becomes the channel name used for cache paths and OCI repository
+    paths.
+    """
+    if "://" in channel:
+        name = urlsplit(channel).path.rstrip("/").rsplit("/", 1)[-1]
+        if not name:
+            raise ValueError(f"Cannot derive a channel name from {channel!r}")
+        return channel.rstrip("/"), name
+    return f"https://conda.anaconda.org/{channel}", channel
 
 
 def print_item(prefix, item):

@@ -180,8 +180,12 @@ class PackageRepo:
         mirror_shards=True,
         shard_workers=2,
         repush_shards=False,
+        channel_base_url=None,
     ):
         self.channel = channel
+        self.channel_base_url = (
+            channel_base_url or f"https://conda.anaconda.org/{channel}"
+        )
         self.subdir = subdir
         self.cache_dir = cache_dir or defaults.CACHE_DIR
         self.timestamp = None
@@ -301,13 +305,13 @@ class PackageRepo:
 
         # The repodata is "patched" by this file: repodata_from_packages.json
         patches = requests.get(
-            f"https://conda.anaconda.org/{self.channel}/{self.subdir}/repodata_from_packages.json",
+            f"{self.channel_base_url}/{self.subdir}/repodata_from_packages.json",
             allow_redirects=True,
             timeout=60,
         )
         logger.info(f"Downloading fresh repodata for {self.channel}/{self.subdir}")
         repodata = requests.get(
-            f"https://conda.anaconda.org/{self.channel}/{self.subdir}/repodata.json",
+            f"{self.channel_base_url}/{self.subdir}/repodata.json",
             allow_redirects=True,
             timeout=60,
         )
@@ -335,7 +339,7 @@ class PackageRepo:
         """
         if not self.mirror_shards:
             return
-        base_url = f"https://conda.anaconda.org/{self.channel}/{self.subdir}"
+        base_url = f"{self.channel_base_url}/{self.subdir}"
         response = requests.get(
             f"{base_url}/repodata_shards.msgpack.zst", allow_redirects=True, timeout=60
         )
