@@ -42,7 +42,9 @@ class Mirror:
         shard_workers=2,
         repush_shards=False,
     ):
-        self.channel, self.channel_base_url = util.channel_url_and_name(channel)
+        channel_base_url, name = util.channel_url_and_name(channel)
+        self.channel = name
+        self.channel_base_url = channel_base_url
         self.subdirs = subdirs or defaults.DEFAULT_SUBDIRS
         self.packages = [packages] if isinstance(packages, str) else (packages or [])
         if "all" in self.packages:
