@@ -153,7 +153,15 @@ def push_manifest(pusher, uri):
 
 
 def read_shard_index(content):
-    return msgpack.unpackb(zstd.ZstdDecompressor().decompress(content), raw=False)
+    decompressor = zstd.ZstdDecompressor()
+    try:
+        raw = decompressor.decompress(content)
+    except zstd.ZstdError:
+        # frames written by a streaming compressor can carry no content
+        # size in the header, which plain decompress() refuses to read
+        dobj = decompressor.decompressobj()
+        raw = dobj.decompress(content) + dobj.flush()
+    return msgpack.unpackb(raw, raw=False)
 
 
 def shard_digests(index):
@@ -349,7 +357,18 @@ class PackageRepo:
             return
         response.raise_for_status()
 
-        index = read_shard_index(response.content)
+        try:
+            index = read_shard_index(response.content)
+        except (ValueError, zstd.ZstdError):
+            # shards are only an optimization: a transiently invalid index
+            # (e.g. rewritten mid-publication upstream) must not fail the
+            # mirror run
+            logger.warning(
+                f"Invalid repodata shards index for {self.channel}/{self.subdir}, ignoring shards"
+            )
+            if os.path.exists(self.shard_index):
+                os.remove(self.shard_index)
+            return
         self.source_shards_url = urljoin(
             f"{base_url}/", index["info"].get("shards_base_url", "")
         )
